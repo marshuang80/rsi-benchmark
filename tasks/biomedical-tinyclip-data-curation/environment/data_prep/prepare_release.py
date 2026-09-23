@@ -250,7 +250,7 @@ def main() -> None:
     ap.add_argument("--eval-per-type", type=int, default=1000)
     ap.add_argument("--eval-reserve", type=float, default=0.25, help="fraction of articles held out of the pool")
     ap.add_argument("--max-per-article-eval", type=int, default=2)
-    ap.add_argument("--seed", default="biomedica-tinyclip-data-curation/v1")
+    ap.add_argument("--seed", default="biomedical-tinyclip-data-curation/v1")
     ap.add_argument("--workers", type=int, default=8)
     a = ap.parse_args()
     if not a.local_shard_dir and not a.token:

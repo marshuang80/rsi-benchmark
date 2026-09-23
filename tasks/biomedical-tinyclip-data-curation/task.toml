@@ -3,7 +3,7 @@ schema_version = "1.4"
 artifacts = ["/workspace/submission"]
 
 [task]
-name = "rsi-benchmark-submission/biomedica-tinyclip-data-curation"
+name = "rsi-benchmark-submission/biomedical-tinyclip-data-curation"
 description = "Select the subset of BIOMEDICA figure-caption pairs that fine-tunes TinyCLIP into the best biomedical figure retrieval model under a fixed training budget."
 keywords = ["rsi-bench", "data-curation", "biomedical", "vision-language", "CLIP", "retrieval", "BIOMEDICA", "TinyCLIP"]
 
@@ -105,8 +105,8 @@ url = "https://arxiv.org/abs/2304.14108"
 [[metadata.sources]]
 name = "Task release"
 type = "dataset"
-description = "Pinned, sha256-gated pool / dev / held-out artifacts built from BIOMEDICA by environment/data_prep/prepare_release.py and fetched by fetch_release.py. Fill in once uploaded."
-url = "https://huggingface.co/datasets/REPLACE-ME/biomedica-tinyclip-data-curation-release"
+description = "Pinned, sha256-gated pool / dev / held-out subset of BIOMEDICA in the layout of environment/data_prep/prepare_release.py, hosted by the task authors and fetched by fetch_release.py. URL is a placeholder until uploaded."
+url = "https://REPLACE-ME/biomedical-tinyclip-data-curation/v1"
 
 [agent]
 timeout_sec = 14400
