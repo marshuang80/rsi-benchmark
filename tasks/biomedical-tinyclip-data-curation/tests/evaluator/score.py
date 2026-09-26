@@ -60,6 +60,7 @@ def main() -> None:
             "batch_size": res.get("batch_size"),
             "samples_seen": res.get("samples_seen"),
             "seed": res.get("seed"),
+            "setup_seconds": res.get("setup_seconds"),
             "train_seconds": res.get("train_seconds"),
             "total_seconds": res.get("total_seconds"),
         },

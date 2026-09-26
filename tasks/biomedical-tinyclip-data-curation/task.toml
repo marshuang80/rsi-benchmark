@@ -105,8 +105,10 @@ url = "https://arxiv.org/abs/2304.14108"
 [[metadata.sources]]
 name = "Task release"
 type = "dataset"
-description = "Pinned, sha256-gated pool / dev / held-out subset of BIOMEDICA in the layout of environment/data_prep/prepare_release.py, hosted by the task authors and fetched by fetch_release.py. URL is a placeholder until uploaded."
-url = "https://REPLACE-ME/biomedical-tinyclip-data-curation/v1"
+description = "Pinned, sha256-gated pool / dev / held-out subset in the layout of environment/data_prep/prepare_release.py, fetched by the two fetch_release.py copies. CURRENTLY THE TOY STAND-IN (procedurally rendered figures, 5,000 / 400 / 400 pairs, synthetic, CC0); replaced by the BIOMEDICA subset before submission."
+url = "https://raw.githubusercontent.com/marshuang80/rsi-benchmark/toy-data"
+revision = "toy-data"
+license = "CC0 (toy stand-in); CC0 / CC BY / CC BY-SA / CC BY-ND per article for the BIOMEDICA release"
 
 [agent]
 timeout_sec = 14400
@@ -134,6 +136,7 @@ timeout_sec = 3600
 environment_mode = "separate"
 
 [verifier.environment]
+build_timeout_sec = 7200
 cpus = 16
 memory_mb = 65536
 storage_mb = 61440

@@ -68,16 +68,15 @@ Select data that makes the model good across *all four*, not just one.
   `/logs/verifier/reward.json` and `/logs/verifier/result.json` (the latter
   also breaks recall down by figure type). One run takes a few minutes on the
   GPU. The hidden evaluator is an identical copy that only swaps in the
-  held-out pairs, so do not edit the validation copy: doing so changes only
-  your own feedback.
-- **Baseline** at `/workspace/baseline/baseline.sh`: a uniformly random draw
-  of 20,000 ids, no curation. Its validation statistics are in
-  `/workspace/baseline/baseline_val_reward.json`; measure yourself against
+  held-out pairs, so editing the validation copy changes only your own
+  feedback.
+- **Baseline statistics** in `/workspace/baseline/baseline_val_reward.json`:
+  the uncurated random-draw reference (20,000 ids). Measure yourself against
   that mean, and treat gaps smaller than a couple of its standard deviations
   as noise.
 - Standard GPU sandbox (one H100, Python, PyTorch, transformers, Pillow,
-  numpy). No internet: the pool carries no quality or figure-type labels,
-  so any such signal must come from your own analysis.
+  numpy). No data access at runtime: the pool carries no quality or
+  figure-type labels, so any such signal must come from your own analysis.
 
 ## How you are scored
 
@@ -94,7 +93,9 @@ recalls are reported alongside it as diagnostics.
 - A submission whose `selection.json` is missing, not a JSON list of
   integers, has duplicates or out-of-range ids, or has fewer than 4,000 or
   more than 24,000 ids is **invalid**: it receives the floor reward and is
-  excluded from ranking. Missing `curate.py` or `summary.md` is invalid too.
+  excluded from ranking. So is a missing, empty or unparseable `curate.py`,
+  a `summary.md` without both sections, any of those three being a symlink
+  or larger than 16 MB, or a bundle over 1 GB or 10,000 files.
 - You cannot change the model, the recipe, the number of steps or the
   evaluation. Only the id list reaches the verifier.
 

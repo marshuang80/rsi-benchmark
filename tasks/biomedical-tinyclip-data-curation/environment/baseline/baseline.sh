@@ -11,10 +11,11 @@ POOL_DIR="${POOL_DIR:-/workspace/data/pool}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 mkdir -p "$SUBMISSION_DIR"
+rm -f "$SUBMISSION_DIR/selection.json" "$SUBMISSION_DIR/curate.py" "$SUBMISSION_DIR/summary.md"
 cp "$HERE/curate.py" "$SUBMISSION_DIR/curate.py"
 python3 "$SUBMISSION_DIR/curate.py" --pool-dir "$POOL_DIR" \
     --out "$SUBMISSION_DIR/selection.json" --seed "$SEED"
-N_IDS="$(python3 -c "import json; print(len(json.load(open('$SUBMISSION_DIR/selection.json'))))")"
+N_IDS="$(python3 -c 'import json, sys; print(len(json.load(open(sys.argv[1]))))' "$SUBMISSION_DIR/selection.json")"
 
 cat > "$SUBMISSION_DIR/summary.md" <<MD
 ## Experiments
