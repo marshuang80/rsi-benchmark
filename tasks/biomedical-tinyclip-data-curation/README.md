@@ -156,6 +156,15 @@ articles cannot transfer because the pool is article-disjoint from both.
 
 ## Data release
 
+> **Current state:** both copies of `fetch_release.py` are pinned to a **toy
+> release** (branch `toy-data` of the contributor fork: procedurally rendered
+> figures with templated captions, 5,000-pair pool, 400 dev and 400 held-out
+> pairs) so the whole pipeline can be built and run before the BIOMEDICA
+> subset is hosted. With it, the selection bounds are 166..1000 ids and the
+> baseline draws 833. Every number in `instruction.md` and `task.toml` refers
+> to the real 120,000-pair release; switch `RELEASE_BASE` and `RELEASE_FILES`
+> and re-measure the anchors before submission.
+
 The BIOMEDICA archive on Hugging Face is gated (click-through terms), so the
 task images do not stream it. Instead the task authors publish a fixed subset
 in the release layout below, and both Dockerfiles fetch it through

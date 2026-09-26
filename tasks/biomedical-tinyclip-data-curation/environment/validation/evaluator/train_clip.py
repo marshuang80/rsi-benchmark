@@ -58,7 +58,7 @@ class EvalImages(Dataset):
 def build_order(ids: np.ndarray, samples: int, seed: int) -> np.ndarray:
     """Seeded epoch-wise shuffles of the selection, concatenated to `samples` positions."""
     rng = np.random.default_rng(seed)
-    chunks, total = [], 0
+    chunks, total = [np.zeros(0, dtype=np.int64)], 0
     while total < samples:
         perm = rng.permutation(len(ids))
         chunks.append(ids[perm])
@@ -129,7 +129,7 @@ def main() -> None:
     ap.add_argument("--selection", required=True, help="accepted ids (.npy) from check_selection.py")
     ap.add_argument("--eval-dir", required=True)
     ap.add_argument("--out-json", required=True)
-    ap.add_argument("--steps", type=int, default=config.TRAIN_STEPS)
+    ap.add_argument("--steps", type=int, default=config.TRAIN_STEPS, help="0 evaluates the checkpoint zero-shot")
     ap.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
     ap.add_argument("--seed", type=int, default=config.TRAIN_SEED)
     a = ap.parse_args()
