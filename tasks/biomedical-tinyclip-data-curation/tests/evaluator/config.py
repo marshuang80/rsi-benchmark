@@ -34,12 +34,14 @@ IMAGE_SIZE = 224
 MAX_TEXT_TOKENS = 77
 
 # Evaluation ----------------------------------------------------------------
-RECALL_KS = (1, 5, 10)
+# Zero-shot classification on the open suites of Biomedica2025EvalSet: each
+# image is matched against its candidate captions and counts as correct only
+# if its gold caption scores strictly higher than every other option.
 EVAL_BATCH_SIZE = 256
-METRIC_NAMES = tuple(f"{d}_recall_at_{k}" for d in ("i2t", "t2i") for k in RECALL_KS)
-REWARD_NAME = "mean_recall"
+SUITES = ("medmnist", "patchcamelyon", "ubench", "lc25000")
+METRIC_NAMES = tuple(f"{s}_accuracy" for s in SUITES)
+REWARD_NAME = "mean_zero_shot_accuracy"
 REWARD_DIRECTION = "higher_better"
-FIGURE_TYPES = ("Clinical Imaging", "Microscopy", "Immuno Assays", "Plots and Charts")
 
 
 def selection_bounds(pool_size: int) -> tuple[int, int]:

@@ -4,8 +4,8 @@ artifacts = ["/workspace/submission"]
 
 [task]
 name = "rsi-benchmark-submission/biomedical-tinyclip-data-curation"
-description = "Select the subset of BIOMEDICA figure-caption pairs that fine-tunes TinyCLIP into the best biomedical figure retrieval model under a fixed training budget."
-keywords = ["rsi-bench", "data-curation", "biomedical", "vision-language", "CLIP", "retrieval", "BIOMEDICA", "TinyCLIP"]
+description = "Select the subset of BIOMEDICA figure-caption pairs that fine-tunes TinyCLIP into the best zero-shot biomedical image classifier under a fixed training budget."
+keywords = ["rsi-bench", "data-curation", "biomedical", "vision-language", "CLIP", "zero-shot-classification", "BIOMEDICA", "TinyCLIP"]
 
 [[task.authors]]
 name = "REPLACE-ME"
@@ -16,7 +16,7 @@ organization = "REPLACE-ME"
 category = "Data"
 
 [metadata.reward]
-description = "Mean of image-to-text and text-to-image recall@1, @5 and @10 (percent) on held-out BIOMEDICA figure-caption pairs, measured after fine-tuning TinyCLIP on the selected subset with the frozen recipe."
+description = "Mean of four suite accuracies (percent) for zero-shot classification on the held-out half of the open Biomedica2025EvalSet suites (MedMNIST, PatchCamelyon, uBench, LC25000); each suite accuracy is the unweighted mean of its tasks' accuracies, measured after fine-tuning TinyCLIP on the selected subset with the frozen recipe."
 direction = "higher_better"
 theoretical_best = 100.0
 # Aggregate reward emitted by val.sh and test.sh for the random-selection
@@ -27,54 +27,76 @@ baseline_validation = { mean = 0.0, std = 0.0, runs = 3 }
 baseline_test = { mean = 0.0, std = 0.0, runs = 3 }
 
 [[metadata.metrics]]
-name = "i2t_recall_at_1"
-description = "Image-to-text recall@1 (percent): fraction of held-out figures whose own caption ranks first among all held-out captions."
+name = "medmnist_accuracy"
+description = "Zero-shot accuracy (percent) on the held-out half of the MedMNIST suite (OrganA, Derma, OCT, Pneumonia, Retina, Breast): unweighted mean over its tasks of the fraction of images whose correct caption scores strictly above every other candidate."
 unit = "percent"
 direction = "higher_better"
-sources = ["BIOMEDICA"]
+sources = ["Biomedica2025EvalSet", "MedMNIST"]
 
 [[metadata.metrics]]
-name = "i2t_recall_at_5"
-description = "Image-to-text recall@5 (percent)."
+name = "patchcamelyon_accuracy"
+description = "Zero-shot accuracy (percent) on the held-out half of the PatchCamelyon suite (lymph-node metastasis): unweighted mean over its tasks of the fraction of images whose correct caption scores strictly above every other candidate."
 unit = "percent"
 direction = "higher_better"
-sources = ["BIOMEDICA"]
+sources = ["Biomedica2025EvalSet", "PatchCamelyon"]
 
 [[metadata.metrics]]
-name = "i2t_recall_at_10"
-description = "Image-to-text recall@10 (percent)."
+name = "ubench_accuracy"
+description = "Zero-shot accuracy (percent) on the held-out half of the uBench suite (20 microscopy tasks): unweighted mean over its tasks of the fraction of images whose correct caption scores strictly above every other candidate."
 unit = "percent"
 direction = "higher_better"
-sources = ["BIOMEDICA"]
+sources = ["Biomedica2025EvalSet", "uBench"]
 
 [[metadata.metrics]]
-name = "t2i_recall_at_1"
-description = "Text-to-image recall@1 (percent): fraction of held-out captions whose own figure ranks first among all held-out figures."
+name = "lc25000_accuracy"
+description = "Zero-shot accuracy (percent) on the held-out half of the LC25000 suite (lung and colon histology): unweighted mean over its tasks of the fraction of images whose correct caption scores strictly above every other candidate."
 unit = "percent"
 direction = "higher_better"
-sources = ["BIOMEDICA"]
-
-[[metadata.metrics]]
-name = "t2i_recall_at_5"
-description = "Text-to-image recall@5 (percent)."
-unit = "percent"
-direction = "higher_better"
-sources = ["BIOMEDICA"]
-
-[[metadata.metrics]]
-name = "t2i_recall_at_10"
-description = "Text-to-image recall@10 (percent)."
-unit = "percent"
-direction = "higher_better"
-sources = ["BIOMEDICA"]
+sources = ["Biomedica2025EvalSet", "LC25000"]
 
 [[metadata.sources]]
 name = "BIOMEDICA"
 type = "dataset"
-description = "BIOMEDICA 24M figure-caption archive (PubMed Central Open Access); the pool and both evaluation sets are article-disjoint slices of the commercial-use subset, resized to 224 px shorter side."
+description = "BIOMEDICA 24M figure-caption archive (PubMed Central Open Access); the training pool is a slice of the commercial-use subset, resized to 224 px shorter side and decontaminated against the evaluation images."
 url = "https://huggingface.co/datasets/BIOMEDICA/biomedica_webdataset_24M"
 revision = "8a576b9859b7771dfbd340c7e8b5667bebf3329f"
 license = "CC0 / CC BY / CC BY-SA / CC BY-ND per article (commercial subset); attribution kept in meta.jsonl"
+
+[[metadata.sources]]
+name = "Biomedica2025EvalSet"
+type = "benchmark"
+description = "Unified test snapshot of the BIOMEDICA zero-shot evaluation suites; only the four openly licensed suites (MedMNIST, PatchCamelyon, uBench, LC25000) are used, split into dev and held-out halves by image hash inside the images by build_evalset.py. Tasks with fewer than two options and uBench's 'unknown' task are excluded."
+url = "https://huggingface.co/datasets/BIOMEDICA/Biomedica2025EvalSet"
+revision = "271cd1cdf0b11fae597a1b7db4438855ce0d5028"
+license = "Per suite: CC0-1.0 (PatchCamelyon), CC BY 4.0 (MedMNIST, uBench, LC25000); rehosted by BIOMEDICA, not redistributed by this task"
+
+[[metadata.sources]]
+name = "MedMNIST"
+type = "dataset"
+description = "Yang et al., MedMNIST v2 (Scientific Data 2023)."
+url = "https://medmnist.com"
+license = "CC BY 4.0"
+
+[[metadata.sources]]
+name = "PatchCamelyon"
+type = "dataset"
+description = "Veeling et al., Rotation Equivariant CNNs for Digital Pathology (MICCAI 2018)."
+url = "https://github.com/basveeling/pcam"
+license = "CC0-1.0"
+
+[[metadata.sources]]
+name = "uBench"
+type = "benchmark"
+description = "Lozano, Nirschl et al., uBench (Micro-Bench), a microscopy vision-language benchmark (NeurIPS 2024 Datasets and Benchmarks track); aggregates published microscopy datasets."
+url = "https://huggingface.co/datasets/jnirschl/uBench"
+license = "CC BY 4.0"
+
+[[metadata.sources]]
+name = "LC25000"
+type = "dataset"
+description = "Borkowski et al., Lung and Colon Cancer Histopathological Image Dataset (LC25000), arXiv:1912.12142."
+url = "https://arxiv.org/abs/1912.12142"
+license = "CC BY 4.0"
 
 [[metadata.sources]]
 name = "BIOMEDICA paper"
@@ -105,7 +127,7 @@ url = "https://arxiv.org/abs/2304.14108"
 [[metadata.sources]]
 name = "Task release"
 type = "dataset"
-description = "Pinned, sha256-gated pool / dev / held-out subset in the layout of environment/data_prep/prepare_release.py, fetched by the two fetch_release.py copies. CURRENTLY THE TOY STAND-IN (procedurally rendered figures, 5,000 / 400 / 400 pairs, synthetic, CC0); replaced by the BIOMEDICA subset before submission."
+description = "Pinned, sha256-gated training pool in the layout of environment/data_prep/prepare_release.py, fetched by fetch_release.py. CURRENTLY THE TOY STAND-IN (5,000 procedurally rendered figure-caption pairs, synthetic, CC0); replaced by the BIOMEDICA pool before submission."
 url = "https://raw.githubusercontent.com/marshuang80/rsi-benchmark/toy-data"
 revision = "toy-data"
 license = "CC0 (toy stand-in); CC0 / CC BY / CC BY-SA / CC BY-ND per article for the BIOMEDICA release"

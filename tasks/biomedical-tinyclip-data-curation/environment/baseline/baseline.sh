@@ -32,6 +32,6 @@ Reproduce with:
         --out /workspace/submission/selection.json --seed ${SEED}
 
 The evaluator fine-tunes TinyCLIP on these pairs with the frozen recipe and
-reports recall@k on held-out figure-caption pairs.
+reports zero-shot accuracy on the held-out half of the evaluation set.
 MD
 echo "baseline submission written to $SUBMISSION_DIR (seed $SEED)"

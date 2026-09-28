@@ -4,11 +4,11 @@
 
 The solver controls only the id list. Everything else -- checkpoint, optimizer,
 schedule, batch size, step count, seed, preprocessing, tokenization -- is fixed
-here and in config.py. The same file runs validation (agent-visible dev pairs)
-and the hidden test (held-out pairs); only --eval-dir differs.
+here and in config.py. The same file runs validation (agent-visible dev half)
+and the hidden test (held-out half of the eval set); only --eval-dir differs.
 
-Output JSON (--out-json): recall@k in both directions on the eval pairs, per
-figure-type recall, and run provenance. Exits non-zero (no JSON) if training
+Output JSON (--out-json): zero-shot accuracy per suite (the mean of its
+tasks' accuracies), per-task accuracy, and run provenance. Exits non-zero (no JSON) if training
 diverges to non-finite values, so a diverged run is reported as a failure
 rather than scored.
 """
@@ -100,41 +100,53 @@ def lr_lambda(step: int) -> float:
 
 
 @torch.no_grad()
-def encode_eval(model, tokenizer, store: ImageStore, captions: list[str], device, workers: int):
+def encode_images(model, store: ImageStore, device, workers: int) -> torch.Tensor:
     model.eval()
-    img_feats = []
+    feats_all = []
     loader = DataLoader(EvalImages(store), batch_size=config.EVAL_BATCH_SIZE, shuffle=False,
                         num_workers=workers, pin_memory=device.type == "cuda")
     for pixels in loader:
         feats = model.get_image_features(pixel_values=pixels.to(device, non_blocking=True))
-        img_feats.append(F.normalize(feats.float(), dim=-1).cpu())
-    txt_feats = []
-    for start in range(0, len(captions), config.EVAL_BATCH_SIZE):
-        tok = tokenizer(captions[start:start + config.EVAL_BATCH_SIZE], padding=True, truncation=True,
+        feats_all.append(F.normalize(feats.float(), dim=-1).cpu())
+    return torch.cat(feats_all)
+
+
+@torch.no_grad()
+def encode_texts(model, tokenizer, texts: list[str], device) -> torch.Tensor:
+    model.eval()
+    feats_all = []
+    for start in range(0, len(texts), config.EVAL_BATCH_SIZE):
+        tok = tokenizer(texts[start:start + config.EVAL_BATCH_SIZE], padding=True, truncation=True,
                         max_length=config.MAX_TEXT_TOKENS, return_tensors="pt").to(device)
         feats = model.get_text_features(input_ids=tok["input_ids"], attention_mask=tok["attention_mask"])
-        txt_feats.append(F.normalize(feats.float(), dim=-1).cpu())
-    return torch.cat(img_feats), torch.cat(txt_feats)
+        feats_all.append(F.normalize(feats.float(), dim=-1).cpu())
+    return torch.cat(feats_all)
 
 
-def recall_table(sims: torch.Tensor, groups: list[str]) -> dict:
-    """sims[q, c]: query q's match is candidate q. Returns overall and per-group recall@k (percent).
+def zero_shot_accuracy(img: torch.Tensor, txt: torch.Tensor, option_ids: list[list[int]],
+                       meta: list[dict]) -> tuple[dict, dict]:
+    """Per-task and per-suite accuracy (percent).
 
-    Ties are broken pessimistically: the true match ranks behind every candidate
-    scoring >= it, so a collapsed or constant embedding cannot score well.
+    A row is correct only if its gold option scores strictly higher than every
+    other option, so ties (a collapsed text tower) and NaNs count as wrong.
+    Suite accuracy is the unweighted mean of its tasks' accuracies.
     """
-    target = torch.arange(sims.shape[0])
-    true = sims[target, target].unsqueeze(1)
-    rank = (sims > true).sum(dim=1) + (sims == true).sum(dim=1) - 1
-    out = {"overall": {}, "by_group": {}}
-    for k in config.RECALL_KS:
-        out["overall"][f"recall_at_{k}"] = round(float((rank < k).float().mean() * 100), 4)
-    garr = np.array(groups)
-    for name in sorted(set(groups)):
-        mask = torch.from_numpy(garr == name)
-        out["by_group"][name] = {f"recall_at_{k}": round(float((rank[mask] < k).float().mean() * 100), 4)
-                                 for k in config.RECALL_KS}
-    return out
+    hits: dict[tuple[str, str], list[int]] = {}
+    for i, (opts, m) in enumerate(zip(option_ids, meta)):
+        scores = txt[opts] @ img[i]
+        gold = scores[m["answer_idx"]]
+        others = torch.cat([scores[:m["answer_idx"]], scores[m["answer_idx"] + 1:]])
+        ok = bool(torch.isfinite(scores).all()) and bool((gold > others).all())
+        hits.setdefault((m["suite"], m["task"]), []).append(int(ok))
+    per_task = {f"{s}/{t}": {"accuracy": round(100.0 * sum(v) / len(v), 4), "n": len(v)}
+                for (s, t), v in sorted(hits.items())}
+    per_suite = {}
+    for suite in config.SUITES:
+        accs = [100.0 * sum(v) / len(v) for (s, _), v in hits.items() if s == suite]
+        if not accs:
+            raise ValueError(f"evaluation set has no rows for suite {suite!r}")
+        per_suite[suite] = round(sum(accs) / len(accs), 4)
+    return per_suite, per_task
 
 
 def main() -> None:
@@ -172,10 +184,13 @@ def main() -> None:
     eval_meta = read_meta(a.eval_dir)
     if len(eval_meta) != len(eval_store):
         sys.exit("FATAL: eval meta.jsonl and index.npy disagree on size")
-    if any("figure_type" not in m for m in eval_meta):
-        sys.exit("FATAL: every eval record must carry figure_type")
-    captions = [m["caption"] for m in eval_meta]
-    groups = [m["figure_type"] for m in eval_meta]
+    for m in eval_meta:
+        if m.get("suite") not in config.SUITES or not m.get("task") or len(m.get("options", [])) < 2 \
+                or not (0 <= m.get("answer_idx", -1) < len(m["options"])):
+            sys.exit(f"FATAL: malformed eval record {m.get('id')}")
+    texts = sorted({o for m in eval_meta for o in m["options"]})
+    text_pos = {t: i for i, t in enumerate(texts)}
+    option_ids = [[text_pos[o] for o in m["options"]] for m in eval_meta]
 
     tokenizer = CLIPTokenizerFast.from_pretrained(a.model_dir)
     model = CLIPModel.from_pretrained(a.model_dir, dtype=torch.float32).to(device)
@@ -230,21 +245,17 @@ def main() -> None:
     train_secs = time.time() - t_train
     del loader
 
-    img, txt = encode_eval(model, tokenizer, eval_store, captions, device, workers)
+    img = encode_images(model, eval_store, device, workers)
+    txt = encode_texts(model, tokenizer, texts, device)
     if not (torch.isfinite(img).all() and torch.isfinite(txt).all()):
         sys.exit("FATAL: non-finite embeddings; training diverged")
-    sims = img @ txt.t()
-    i2t = recall_table(sims, groups)
-    t2i = recall_table(sims.t(), groups)
+    per_suite, per_task = zero_shot_accuracy(img, txt, option_ids, eval_meta)
 
-    metrics = {}
-    for k in config.RECALL_KS:
-        metrics[f"i2t_recall_at_{k}"] = i2t["overall"][f"recall_at_{k}"]
-        metrics[f"t2i_recall_at_{k}"] = t2i["overall"][f"recall_at_{k}"]
+    metrics = {f"{suite}_accuracy": acc for suite, acc in per_suite.items()}
     result = {
         "metrics": metrics,
-        "by_figure_type": {"i2t": i2t["by_group"], "t2i": t2i["by_group"]},
-        "eval_pairs": len(eval_meta),
+        "by_task": per_task,
+        "eval_images": len(eval_meta),
         "selection_size": int(len(ids)),
         "train_steps": a.steps,
         "batch_size": a.batch_size,
@@ -256,7 +267,7 @@ def main() -> None:
         "total_seconds": round(time.time() - t0, 1),
     }
     Path(a.out_json).write_text(json.dumps(result, indent=2))
-    print("RETRIEVAL " + " ".join(f"{k}={v:.2f}" for k, v in metrics.items()), flush=True)
+    print("ZERO_SHOT " + " ".join(f"{k}={v:.2f}" for k, v in metrics.items()), flush=True)
 
 
 if __name__ == "__main__":
