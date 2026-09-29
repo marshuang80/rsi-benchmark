@@ -4,8 +4,8 @@ artifacts = ["/workspace/submission"]
 
 [task]
 name = "rsi-benchmark-submission/biomedical-tinyclip-data-curation"
-description = "Select the subset of BIOMEDICA figure-caption pairs that fine-tunes TinyCLIP into the best zero-shot biomedical image classifier under a fixed training budget."
-keywords = ["rsi-bench", "data-curation", "biomedical", "vision-language", "CLIP", "zero-shot-classification", "BIOMEDICA", "TinyCLIP"]
+description = "Select the subset of PMC-OA biomedical figure-caption pairs that fine-tunes TinyCLIP into the best zero-shot biomedical image classifier under a fixed training budget."
+keywords = ["rsi-bench", "data-curation", "biomedical", "vision-language", "CLIP", "zero-shot-classification", "PMC-OA", "TinyCLIP"]
 
 [[task.authors]]
 name = "REPLACE-ME"
@@ -55,12 +55,18 @@ direction = "higher_better"
 sources = ["Biomedica2025EvalSet", "LC25000"]
 
 [[metadata.sources]]
-name = "BIOMEDICA"
+name = "PMC-OA"
 type = "dataset"
-description = "BIOMEDICA 24M figure-caption archive (PubMed Central Open Access); the training pool is a slice of the commercial-use subset, resized to 224 px shorter side and decontaminated against the evaluation images."
-url = "https://huggingface.co/datasets/BIOMEDICA/biomedica_webdataset_24M"
-revision = "8a576b9859b7771dfbd340c7e8b5667bebf3329f"
-license = "CC0 / CC BY / CC BY-SA / CC BY-ND per article (commercial subset); attribution kept in meta.jsonl"
+description = "Lin et al., PMC-CLIP: Contrastive Language-Image Pre-training using Biomedical Documents (MICCAI 2023). 1.64M sub-figure/caption pairs from PubMed Central open-access articles; the pool is every pair whose article carries a commercial-use license (CC0, CC BY, CC BY-SA, CC BY-ND) and is not retracted, minus near-duplicates of evaluation images. Downloaded from the pinned revision at build time, not redistributed by this task."
+url = "https://huggingface.co/datasets/axiong/pmc_oa"
+revision = "1d2296e9c022a24e82a47e524d53f0915b98c926"
+license = "Per article, recorded in the pool metadata: CC0, CC BY, CC BY-SA or CC BY-ND (the dataset card declares no license of its own; PMC-CLIP code is MIT)"
+
+[[metadata.sources]]
+name = "PubMed Central article metadata"
+type = "dataset"
+description = "Per-article license, retraction status, title and citation from NLM's PMC Open Access cloud service, used once to admit articles; the result is pinned in pool_articles.tsv.gz."
+url = "https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/"
 
 [[metadata.sources]]
 name = "Biomedica2025EvalSet"
@@ -124,14 +130,6 @@ type = "benchmark"
 description = "Gadre et al., DataComp: In search of the next generation of multimodal datasets (NeurIPS 2023); the fixed-recipe data-filtering protocol this task follows."
 url = "https://arxiv.org/abs/2304.14108"
 
-[[metadata.sources]]
-name = "Task release"
-type = "dataset"
-description = "Pinned, sha256-gated training pool in the layout of environment/data_prep/prepare_release.py, fetched by fetch_release.py. CURRENTLY THE TOY STAND-IN (5,000 procedurally rendered figure-caption pairs, synthetic, CC0); replaced by the BIOMEDICA pool before submission."
-url = "https://raw.githubusercontent.com/marshuang80/rsi-benchmark/toy-data"
-revision = "toy-data"
-license = "CC0 (toy stand-in); CC0 / CC BY / CC BY-SA / CC BY-ND per article for the BIOMEDICA release"
-
 [agent]
 timeout_sec = 14400
 
@@ -139,7 +137,7 @@ timeout_sec = 14400
 build_timeout_sec = 7200
 cpus = 16
 memory_mb = 65536
-storage_mb = 61440
+storage_mb = 102400
 gpus = 1
 gpu_types = ["H100"]
 network_mode = "allowlist"
@@ -161,7 +159,7 @@ environment_mode = "separate"
 build_timeout_sec = 7200
 cpus = 16
 memory_mb = 65536
-storage_mb = 61440
+storage_mb = 102400
 gpus = 1
 gpu_types = ["H100"]
 network_mode = "no-network"
