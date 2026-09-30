@@ -20,11 +20,11 @@ description = "Mean of two families, in percent (equal weighting; may be revisit
 direction = "higher_better"
 theoretical_best = 100.0
 # Aggregate reward emitted by val.sh and test.sh for the random-selection
-# baseline (256,000 random ids), seeds 0, 1, 2 on Modal H100, 2026-09-29;
+# baseline (256,000 random ids), seeds 0, 1, 2 on Modal H100, 2026-09-30;
 # per-run values in the README. Measured with the equal weighting of
-# retrieval_mean and zero_shot_mean.
-baseline_validation = { mean = 30.825, std = 0.4692, runs = 3 }
-baseline_test = { mean = 30.7811, std = 0.4119, runs = 3 }
+# retrieval_mean and zero_shot_mean, zero-shot by balanced accuracy.
+baseline_validation = { mean = 29.0335, std = 0.7358, runs = 3 }
+baseline_test = { mean = 28.9305, std = 0.474, runs = 3 }
 
 [[metadata.metrics]]
 name = "retrieval_mean"

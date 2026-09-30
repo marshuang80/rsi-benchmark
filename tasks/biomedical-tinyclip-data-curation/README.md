@@ -98,40 +98,40 @@ budget) with the `SEED` environment variable, i.e. no curation at all. `solution
 only invokes it.
 
 For reference, the starting checkpoint *without any fine-tuning* scores, on
-the dev sets, a zero-shot mean of 42.0 (MedMNIST 31.4, PatchCamelyon 43.1,
-uBench 38.0, LC25000 55.6; several tasks at or below chance) and a retrieval
-mean of 4.8 (3.3 for radiology to 7.3 for infectious disease; recall@10 is
-about 5% against 4,000 candidates): the general-domain checkpoint barely
-aligns biomedical figures with their captions.
+the dev sets, a zero-shot mean of 42.1 (balanced accuracy; several tasks at or
+below chance) and a retrieval mean of 4.8 (3.3 for radiology to 7.3 for
+infectious disease; recall@10 is about 5% against 4,000 candidates): the
+general-domain checkpoint barely aligns biomedical figures with their captions.
 
 ### Baseline calibration
 
-**To be re-measured:** the values below were taken with plain (not balanced)
-zero-shot accuracy, before the switch. Measured on Modal (one H100 per run)
-on 2026-09-29, three seeds on each evaluator (the seed changes the random draw of 256,000 ids):
+Measured on Modal (one H100 per run) on 2026-09-30 with the committed pool
+(1,438,283 pairs), three seeds on each evaluator (the seed changes the random
+draw of 256,000 ids). Harbor job directories are named after their start time:
 
-| Seed | Split | reward | retrieval_mean | zero_shot_mean |
-|---|---|---|---|---|
-| 0 | validation | 30.3603 | 19.4792 | 41.2415 |
-| 1 | validation | 31.2985 | 19.3792 | 43.2179 |
-| 2 | validation | 30.8161 | 19.3500 | 42.2822 |
-| 0 | hidden test | 30.3471 | 19.0542 | 41.6401 |
-| 1 | hidden test | 31.1667 | 19.3333 | 43.0001 |
-| 2 | hidden test | 30.8294 | 19.4750 | 42.1838 |
+| Seed | Split | Harbor job | reward | retrieval_mean | zero_shot_mean |
+|---|---|---|---|---|---|
+| 0 | validation | 2026-09-30__11-03-03 | 28.2037 | 19.4292 | 36.9782 |
+| 1 | validation | 2026-09-30__11-32-59 | 29.6067 | 19.4625 | 39.7510 |
+| 2 | validation | 2026-09-30__11-40-22 | 29.2900 | 19.4708 | 39.1092 |
+| 0 | hidden test | 2026-09-30__09-52-02 | 28.4278 | 19.2708 | 37.5847 |
+| 1 | hidden test | 2026-09-30__11-29-21 | 29.3692 | 19.0292 | 39.7092 |
+| 2 | hidden test | 2026-09-30__11-36-45 | 28.9946 | 19.2833 | 38.7058 |
 
 | | Validation (mean ± sample std) | Hidden test |
 |---|---|---|
-| reward | 30.83 ± 0.47 | 30.78 ± 0.41 |
-| retrieval_mean | 19.40 ± 0.07 | 19.29 ± 0.21 |
-| zero_shot_mean | 42.25 ± 0.99 | 42.27 ± 0.68 |
+| reward | 29.03 ± 0.74 | 28.93 ± 0.47 |
+| retrieval_mean | 19.45 ± 0.02 | 19.19 ± 0.14 |
+| zero_shot_mean | 38.61 ± 1.45 | 38.67 ± 1.06 |
 
 Random literature pairs raise retrieval from 4.8 (untouched checkpoint) to
-about 19.3 to 19.4, but leave zero-shot where it was (42.0 untouched): PatchCamelyon
-rises from 43 to about 57, while MedMNIST, uBench and LC25000 fall. Most of
-the seed-to-seed spread comes from zero-shot, especially MedMNIST (29 to 39
-across runs). Validation and hidden test agree to within 0.14 on every
-seed's reward. One scoring run took 3.2 to 4.7 minutes (training 163 to 232
-s). To re-measure (a different weighting changes the values):
+about 19.2 to 19.5 but lower zero-shot from 42.1 to about 38.6: fine-tuning on
+an uncurated mix of figure types costs the general-purpose alignment the
+zero-shot suites rely on. Nearly all of the seed-to-seed spread comes from
+zero-shot (LC25000 42 to 48, MedMNIST 28 to 32 across runs); retrieval varies
+by at most 0.44. Validation and hidden test agree to within 0.3 on every
+seed's reward. One scoring run took 3.0 to 4.6 minutes (training 151 to 226
+s). To re-measure:
 
 ```bash
 for s in 0 1 2; do
@@ -139,9 +139,12 @@ for s in 0 1 2; do
 done
 ```
 
-The validation runs use the variant produced by
-`tools/baseline-calibration/calibrate.py` (`prepare_variant(..., "validation")`),
-which runs `val.sh` inside the agent container.
+The validation runs used a copy of the task whose verifier image builds the
+dev halves (`eval_dev.tsv.gz`, `build_evalset.py --split val`) in place of the
+held-out ones, so `test.sh` scores the dev sets with the same evaluator code
+that `val.sh` runs; `tools/baseline-calibration/calibrate.py`
+(`prepare_variant(..., "validation")`) reaches the same data and code by
+running `val.sh` inside the agent container.
 
 ## Validation and hidden evaluation
 
@@ -268,7 +271,7 @@ All fourteen are declared diagnostic metrics; every recall per domain and
 accuracy per task is reported in `result.json`. The two families are
 weighted equally although they move on different scales: from the untouched
 checkpoint to the random baseline, retrieval rises from 4.8 to about 19.3
-while zero-shot stays at about 42. The weighting may be revisited once agent
+while zero-shot falls from 42.1 to about 38.6. The weighting may be revisited once agent
 results show how much each family responds to curation.
 
 ## Expected validation-to-test generalisation
