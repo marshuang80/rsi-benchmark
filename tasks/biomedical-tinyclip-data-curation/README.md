@@ -96,9 +96,30 @@ aligns biomedical figures with their captions.
 
 ### Baseline calibration
 
-The statistics in `task.toml` (`[metadata.reward].baseline_validation`,
-`baseline_test`) and `environment/baseline/baseline_val_reward.json` are
-**placeholders until measured**. Measure three seeds on each evaluator:
+Measured on Modal (one H100 per run) on 2026-09-29, three seeds on each
+evaluator, under the provisional equal weighting:
+
+| Seed | Split | reward | retrieval_mean | zero_shot_mean |
+|---|---|---|---|---|
+| 0 | validation | 30.3603 | 19.4792 | 41.2415 |
+| 1 | validation | 31.2985 | 19.3792 | 43.2179 |
+| 2 | validation | 30.8161 | 19.3500 | 42.2822 |
+| 0 | hidden test | 30.3471 | 19.0542 | 41.6401 |
+| 1 | hidden test | 31.1667 | 19.3333 | 43.0001 |
+| 2 | hidden test | 30.8294 | 19.4750 | 42.1838 |
+
+| | Validation (mean ± sample std) | Hidden test |
+|---|---|---|
+| reward | 30.83 ± 0.47 | 30.78 ± 0.41 |
+| retrieval_mean | 19.40 ± 0.07 | 19.29 ± 0.21 |
+| zero_shot_mean | 42.25 ± 0.99 | 42.27 ± 0.68 |
+
+Random literature pairs raise retrieval from 4.8 (untouched checkpoint) to
+about 19.3, but leave zero-shot where it was (42.0 untouched): PatchCamelyon
+rises from 43 to about 57, while MedMNIST, uBench and LC25000 fall. Most of
+the seed-to-seed spread comes from zero-shot, especially MedMNIST (29 to 39
+across runs). Validation and hidden test agree to within 0.1 on every
+seed's reward. To re-measure (a different weighting changes the values):
 
 ```bash
 for s in 0 1 2; do
@@ -106,11 +127,9 @@ for s in 0 1 2; do
 done
 ```
 
-and take `reward` from `/logs/verifier/reward.json` of the validation run
-(`val.sh`, run inside the agent container) and of the hidden run (`test.sh`).
-Record mean, sample standard deviation and run count in both files. Reference
-anchors worth recording in this README alongside them: the zero-shot
-checkpoint above and the do-nothing baseline.
+The validation runs use the variant produced by
+`tools/baseline-calibration/calibrate.py` (`prepare_variant(..., "validation")`),
+which runs `val.sh` inside the agent container.
 
 ## Validation and hidden evaluation
 

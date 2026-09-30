@@ -20,11 +20,11 @@ description = "Mean of two families, in percent (the weighting is provisional, t
 direction = "higher_better"
 theoretical_best = 100.0
 # Aggregate reward emitted by val.sh and test.sh for the random-selection
-# baseline. PLACEHOLDERS until measured: run the baseline three times on each
-# evaluator (see README, "Baseline calibration") and paste the statistics here
-# and into environment/baseline/baseline_val_reward.json.
-baseline_validation = { mean = 0.0, std = 0.0, runs = 3 }
-baseline_test = { mean = 0.0, std = 0.0, runs = 3 }
+# baseline (256,000 random ids), seeds 0, 1, 2 on Modal H100, 2026-09-29;
+# per-run values in the README. Measured under the provisional equal weighting
+# of retrieval_mean and zero_shot_mean.
+baseline_validation = { mean = 30.825, std = 0.4692, runs = 3 }
+baseline_test = { mean = 30.7811, std = 0.4119, runs = 3 }
 
 [[metadata.metrics]]
 name = "retrieval_mean"
