@@ -3,7 +3,7 @@
 """Turn the trainer's result into the Harbor reward files.
 
   zero_shot_mean = mean of the four suite accuracies (each the mean of its
-                   tasks' zero-shot accuracies), in percent
+                   tasks' zero-shot balanced accuracies), in percent
   retrieval_mean = mean of the eight domain retrieval scores, in percent
   reward         = mean of zero_shot_mean and retrieval_mean (equal weighting;
                    may be revisited once agent results are in)

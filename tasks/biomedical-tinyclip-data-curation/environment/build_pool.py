@@ -14,8 +14,8 @@ Which images enter the pool is fixed by two files committed next to this
 script (produced once by data_prep/prepare_pool.py):
 
   pool_articles.tsv.gz   one row per admitted article: pmcid, license, journal,
-                         year, title (commercial-use licenses only: CC0, CC BY,
-                         CC BY-SA, CC BY-ND; retracted articles excluded)
+                         year, title (commercial-use licenses allowing adaptation: CC0, CC BY,
+                         CC BY-SA; retracted articles excluded)
   pool_exclude.txt.gz    names of admitted-article images removed because the
                          caption is empty or the image is a confirmed copy of an
                          evaluation image (pool articles only, no eval names)
@@ -66,14 +66,14 @@ EXCLUDE = HERE / "pool_exclude.txt.gz"
 
 # Pinned results (from a local build with --no-verify); a mismatch fails the build.
 EXPECTED_EVAL = {
-    "eval_dev.tsv.gz": {"size": 4000, "images.bin": "88b9e7543f2be25f4e149034a6dc698c565a7ca322a1ce1ebe8abe87ea7e5052", "index.npy": "82376da1aef755a7a65733b34399ac29adbfe857f7f09d8c0b3f92f084b54969", "meta.jsonl": "d70b86f199accde96bb6287a0adbc3882452d2a8050c4f2e8586781321698c01"},
-    "eval_test.tsv.gz": {"size": 4000, "images.bin": "96be5d06c2b131e0e86a905ef45473aaa437a5f31ecb23b271b5428c88a9ca6f", "index.npy": "5cc71331749d3c6f5b1613f6bf38866c02822e471c5d71fd59f46e4606287315", "meta.jsonl": "05cba6906f4210c59443c014b908145f22055889e8ab0d8cf677da1c3118ad89"},
+    "eval_dev.tsv.gz": {"size": 4000, "images.bin": "db09e0dad7493570d5e6fcbcbccd77e811750172066e7f2fe7ea1e4cf6a2204c", "index.npy": "74da6b5e1b0ffcef64f59f4f50253a4d169f4ae342692c69b8f589a983fb3318", "meta.jsonl": "5cd146ae887fc54b93de5d155676c0593345deb13038d57a4f9dacb52ece11ff"},
+    "eval_test.tsv.gz": {"size": 4000, "images.bin": "46bdecba40ea1f24bc8b557ed5fb53079d9cfae1f3c8d532aff1750ffa9ee198", "index.npy": "c9a2febb76767f56295d82be87ab5b83778e6e05545f35573e5b98c3b1beb44d", "meta.jsonl": "c2f7283e32a5cdb22c2484904c8856e24aeba60f0525b09e1735e5693b8e3f62"},
 }
 EXPECTED = {
-    "pool_size": 1442597,
-    "images.bin": "6c4fd661c811b512d62ddc5c95ac88e6738f633dc5faab7eeb60ea41d4b1ff6c",
-    "index.npy": "eb8260ee3230d116a67eb70888cc6e5f556709068461f3e0dc53c7df1e51e1de",
-    "meta.jsonl": "dc9e3a1b738217e203ca47476f081dcdcb02d923c101b91c67adbe5fe7a3c4c6",
+    "pool_size": 1438283,
+    "images.bin": "3ff867f338101d91097daad7e7063cf200109074731bc185d2e064e346117850",
+    "index.npy": "f550c2d131ef9b81a3e06588f8a747ca9819cef0eb74dc28c1bcbd0b8c8c7af4",
+    "meta.jsonl": "2b28a269d7dd10e73766f0a45070d6cd4999c43ae7d14f513b676d7d5a6c78b4",
 }
 
 

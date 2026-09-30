@@ -9,7 +9,7 @@ and the hidden test (held-out sets); only the data directories differ
 (--pool-dir, --eval-dir, --retrieval-dir).
 
 Output JSON (--out-json): zero-shot accuracy per suite (the mean of its
-tasks' accuracies) and per task, retrieval score per domain with its six
+tasks' balanced accuracies) and per task, retrieval score per domain with its six
 recalls, and run provenance. Exits non-zero (no JSON) if training
 diverges to non-finite values, so a diverged run is reported as a failure
 rather than scored.

@@ -127,10 +127,10 @@ sources = ["Biomedica2025EvalSet", "LC25000"]
 [[metadata.sources]]
 name = "PMC-OA"
 type = "dataset"
-description = "Lin et al., PMC-CLIP: Contrastive Language-Image Pre-training using Biomedical Documents (MICCAI 2023). 1.64M sub-figure/caption pairs from PubMed Central open-access articles; the pool is every pair whose article carries a commercial-use license (CC0, CC BY, CC BY-SA, CC BY-ND) and is not retracted, from articles published in 2021 or earlier, minus near-duplicates of evaluation images; 2022 articles supply the retrieval evaluation. Downloaded from the pinned revision at build time, not redistributed by this task."
+description = "Lin et al., PMC-CLIP: Contrastive Language-Image Pre-training using Biomedical Documents (MICCAI 2023). 1.64M sub-figure/caption pairs from PubMed Central open-access articles; the pool is every pair whose article carries a license allowing commercial use and adaptation (CC0, CC BY, CC BY-SA) and is not retracted, from articles published in 2021 or earlier, minus articles holding near-duplicates of evaluation images; 2022 articles supply the retrieval evaluation. Downloaded from the pinned revision at build time, not redistributed by this task."
 url = "https://huggingface.co/datasets/axiong/pmc_oa"
 revision = "1d2296e9c022a24e82a47e524d53f0915b98c926"
-license = "Per article, recorded in the pool metadata: CC0, CC BY, CC BY-SA or CC BY-ND (the dataset card declares no license of its own; PMC-CLIP code is MIT)"
+license = "Per article, recorded in the pool metadata: CC0, CC BY or CC BY-SA (the dataset card declares no license of its own; PMC-CLIP code is MIT)"
 
 [[metadata.sources]]
 name = "NLM Catalog and PubMed subject metadata"

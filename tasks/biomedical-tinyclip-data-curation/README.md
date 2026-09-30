@@ -8,9 +8,10 @@ under a fixed training budget.
 
 ## Task Description
 
-**Inputs.** A pool of 1,442,597 sub-figure/caption pairs: every pair of
-PMC-OA [^4] from an article published in 2021 or earlier under a commercial-use
-license, minus near-duplicates of evaluation images. Each pair comes with its
+**Inputs.** A pool of 1,438,283 sub-figure/caption pairs: every pair of
+PMC-OA [^4] from an article published in 2021 or earlier under a license
+allowing commercial use and adaptation, minus articles holding near-duplicates
+of evaluation images. Each pair comes with its
 article's PMC id, title, journal, year and license, and PMC-OA's automatic
 sub-figure/caption alignment score. The pool carries *no* modality, domain or
 quality labels. The agent also sees two dev sets: 4,000 figure-caption pairs
@@ -311,21 +312,24 @@ pool or fails.
 
 - `pool_articles.tsv.gz`: the admitted articles with license, journal, year
   and title. An article is admitted if PubMed Central's own metadata lists it
-  as open access, not retracted, and under a commercial-use license (CC0,
-  CC BY, CC BY-SA, CC BY-ND), and it was published in 2021 or earlier;
-  articles under non-commercial or text-mining-only terms, or with no license
-  recorded, are excluded.
+  as open access, not retracted, and under a commercial-use license that
+  allows adaptation (CC0, CC BY, CC BY-SA), it was published in 2021 or
+  earlier, and none of its images is a confirmed copy of an evaluation image.
+  Articles under non-commercial, no-derivatives or text-mining-only terms, or
+  with no license recorded, are excluded; CC BY-ND is excluded because
+  PMC-OA's sub-figures are crops of the published figures.
 - `pool_exclude.txt.gz`: names of pool-article images dropped because the
-  caption is empty (685) or the image is a confirmed copy of an evaluation
-  image (2). It lists pool images only, never an evaluation image.
+  caption is empty (683). It lists pool images only, never an evaluation
+  image.
 
-Of PMC-OA's 236,852 articles, 236,191 carry a commercial-use license (233,995
-CC BY, 1,339 CC0, 695 CC BY-ND, 162 CC BY-SA; 661 non-commercial, text-mining
-only, unlicensed or no longer open access are excluded). Dropping 707
-retracted articles leaves 235,484, and 208,677 of those were published in
-2021 or earlier (206,542 CC BY, 1,300 CC0, 676 CC BY-ND, 159 CC BY-SA). After dropping empty
-captions and two confirmed copies of evaluation images, **1,442,597** pairs
-remain in the pool.
+Of PMC-OA's 236,852 articles, 235,496 carry a license that allows commercial
+use and adaptation (233,995 CC BY, 1,339 CC0, 162 CC BY-SA; 695 CC BY-ND and
+661 non-commercial, text-mining only, unlicensed or no longer open access are
+excluded). Dropping 706 retracted articles leaves 234,790, and 208,001 of
+those were published in 2021 or earlier (206,542 CC BY, 1,300 CC0, 159
+CC BY-SA). Dropping the 4 articles holding a confirmed copy of an evaluation
+image and 683 empty captions leaves **1,438,283** pairs from 207,997
+articles in the pool.
 
 All committed lists are produced once, author-side, by the scripts in
 `environment/data_prep/`, run in the working directory that holds
@@ -346,28 +350,42 @@ All committed lists are produced once, author-side, by the scripts in
    and both retrieval halves (decontamination), then `build_splits.py` again,
    which writes the committed `pool_articles.tsv.gz` and a pool-only
    `pool_exclude.txt.gz`.
-7. `build_pool.py --no-verify` for each half prints the digests to pin in
+7. `check_decode.py` opens every pool image as the trainer does (PIL,
+   default size limits); all 1,442,582 candidate images decoded, so no
+   selection can fail on a broken image (a failure list would go to
+   `build_splits.py --undecodable`).
+8. `build_pool.py --no-verify` for each half prints the digests to pin in
    `EXPECTED` and `EXPECTED_EVAL`.
 
 The metadata services behind steps 1 and 4 change over time, which is why
 their results are committed rather than fetched at build time.
 
 **Decontamination.** Two stages, both calibrated on real images. First, a
-256-bit difference hash flags every pool image within 16 bits of any
-evaluation image (either half): evaluation images put through a resize and
-JPEG re-encode land within 13 bits of their original, so the hash misses no
-such copy. The hash also flags different images with the same coarse layout
-(a bright blob on black, two fundus photographs of different eyes), so a
-flagged image counts as a copy only if its 64×64 grayscale correlation with
-the matching evaluation image is at least 0.96. Resized and recompressed
-copies score 0.958 or more; all 559 flagged non-copy pairs in the pool score
-at most 0.955. Against the zero-shot set, the hash flagged 79 pool images and
-none was confirmed (17 of them, including the 5 closest, were inspected by eye: similar layout, different image).
-Against the 2022 retrieval sets, two pre-2022 pool images were confirmed and
-dropped: a PET scan and an aortic measurement image that later papers reused,
-with near-identical captions (correlation 0.99). Near-flat images, whose
-hashes carry too little information to match on, are never matched. Copies
-that were cropped, rotated, flipped or embedded in a larger composite are
+256-bit difference hash of every pool image is compared with the hashes of
+every evaluation image (both halves of both sets) in all 8 orientations
+(4 rotations, each with and without a mirror flip), and anything within 16
+bits is flagged: evaluation images put through a resize and JPEG re-encode
+land within 13 bits of their original. The hash also flags different images
+with the same coarse layout (a bright blob on black, two fundus photographs
+of different eyes), so a flagged image counts as a copy only if its 64×64
+grayscale correlation with the matching evaluation image, in the matching
+orientation, is at least 0.96. Resized and recompressed copies score 0.958
+or more; the highest-scoring rejected flag scored 0.957. As a positive
+control, 60 LC25000 test tiles rotated or flipped were all caught (the check
+without orientations caught none).
+
+Across all years the hash flagged 8,295 images and 7,998 were confirmed;
+all but 4 are the 2022 retrieval images themselves and their duplicates,
+which never enter the pool. The 4 pre-2022 pool articles holding a
+confirmed copy are dropped whole (17 images), since an article's other
+figures likely share the copy's source: a PET scan and an aortic
+measurement image that 2022 papers reused, with near-identical captions
+(correlation 0.99), and two images inspected by eye as false positives just
+over the threshold (a PET blob matched to a uBench nucleus, 0.960–0.964; a
+fundus photograph matched to a different RetinaMNIST fundus, 0.970), kept out
+because over-exclusion costs nothing. Near-flat images, whose hashes carry
+too little information to match on, are never matched. Copies that were
+cropped, rotated by other angles or embedded in a larger composite are
 outside what this check detects.
 
 Pool ids are a salted keysort of the image names, so they carry no
@@ -379,7 +397,7 @@ stored in archive order and located through `index.npy`.
 - **PMC-OA** (`axiong/pmc_oa`, revision `1d2296e9…`), Lin et al., MICCAI
   2023. The dataset card declares no license of its own (the PMC-CLIP code is
   MIT); every image keeps its article's license, and only articles under
-  CC0, CC BY, CC BY-SA or CC BY-ND are admitted, per PubMed Central's own
+  CC0, CC BY or CC BY-SA are admitted, per PubMed Central's own
   metadata. The license, PMC id, title and journal travel with every pair in
   `meta.jsonl` for attribution. Images are downloaded from the pinned
   revision at build time, not redistributed by this task.
@@ -405,14 +423,14 @@ checksums.sha256           SHA-256 of the protected entrypoints, evaluator and p
 environment/
   Dockerfile               agent image (pool + dev sets + checkpoint + baseline + validation)
   build_pool.py            builds the pool and one retrieval half from PMC-OA (streamed, digest-checked)
-  pool_articles.tsv.gz     admitted articles (commercial-use licenses, 2021 and earlier)
+  pool_articles.tsv.gz     admitted articles (CC0 / CC BY / CC BY-SA, 2021 and earlier)
   eval_dev.tsv.gz          dev retrieval set: 2022 image, domain, license
-  pool_exclude.txt.gz      pool images dropped (empty caption, confirmed eval copy)
+  pool_exclude.txt.gz      pool images dropped (empty caption)
   build_evalset.py         builds one half of the eval set from Biomedica2025EvalSet
   evalset_manifest.json    sha256 of the 77 parquet files it reads
   data_prep/               author-side, run once (not in images): lookup_licenses.py, prepare_pool.py,
                            journal_subjects.py, fetch_mesh.py, mesh_trees.py, assign_domains.py,
-                           build_splits.py
+                           build_splits.py, check_decode.py
   baseline/                baseline.sh, curate.py, baseline_val_reward.json
   validation/              val.sh + evaluator/ (config, common, check_selection, train_clip, score)
   workspace/               timer.sh, pool_utils.py
