@@ -127,24 +127,33 @@ def encode_texts(model, tokenizer, texts: list[str], device) -> torch.Tensor:
 
 def zero_shot_accuracy(img: torch.Tensor, txt: torch.Tensor, option_ids: list[list[int]],
                        meta: list[dict]) -> tuple[dict, dict]:
-    """Per-task and per-suite accuracy (percent).
+    """Per-task balanced accuracy and per-suite accuracy (percent).
 
     A row is correct only if its gold option scores strictly higher than every
     other option, so ties (a collapsed text tower) and NaNs count as wrong.
-    Suite accuracy is the unweighted mean of its tasks' accuracies.
+    A task's score is its balanced accuracy: the unweighted mean over its
+    classes of the fraction of that class's images classified correctly, so
+    always answering the most common class earns no more than chance. Suite
+    accuracy is the unweighted mean of its tasks' balanced accuracies.
     """
-    hits: dict[tuple[str, str], list[int]] = {}
+    hits: dict[tuple[str, str], dict[str, list[int]]] = {}
     for i, (opts, m) in enumerate(zip(option_ids, meta)):
         scores = txt[opts] @ img[i]
         gold = scores[m["answer_idx"]]
         others = torch.cat([scores[:m["answer_idx"]], scores[m["answer_idx"] + 1:]])
         ok = bool(torch.isfinite(scores).all()) and bool((gold > others).all())
-        hits.setdefault((m["suite"], m["task"]), []).append(int(ok))
-    per_task = {f"{s}/{t}": {"accuracy": round(100.0 * sum(v) / len(v), 4), "n": len(v)}
-                for (s, t), v in sorted(hits.items())}
+        cls = str(m.get("label") or m["options"][m["answer_idx"]])
+        hits.setdefault((m["suite"], m["task"]), {}).setdefault(cls, []).append(int(ok))
+
+    def balanced(by_class: dict[str, list[int]]) -> float:
+        return 100.0 * sum(sum(v) / len(v) for v in by_class.values()) / len(by_class)
+
+    per_task = {f"{s}/{t}": {"accuracy": round(balanced(c), 4), "n": sum(len(v) for v in c.values()),
+                             "classes": len(c)}
+                for (s, t), c in sorted(hits.items())}
     per_suite = {}
     for suite in config.SUITES:
-        accs = [100.0 * sum(v) / len(v) for (s, _), v in hits.items() if s == suite]
+        accs = [balanced(c) for (s, _), c in hits.items() if s == suite]
         if not accs:
             raise ValueError(f"evaluation set has no rows for suite {suite!r}")
         per_suite[suite] = round(sum(accs) / len(accs), 4)

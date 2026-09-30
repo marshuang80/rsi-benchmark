@@ -119,9 +119,11 @@ frozen recipe, then measures two things on held-out data:
   and @10 in both directions. A domain's score is the mean of those six
   recalls over its 500 pairs; `retrieval_mean` averages the eight domains.
 - **Zero-shot classification**: an image counts as correct only if its
-  correct caption scores strictly higher than every other candidate.
-  Accuracy is averaged over the tasks within each suite; `zero_shot_mean`
-  averages the four suites.
+  correct caption scores strictly higher than every other candidate. Each
+  task is scored by balanced accuracy: the average over its classes of the
+  fraction of that class's images classified correctly, so favouring a
+  common class earns nothing. Task scores are averaged within each suite;
+  `zero_shot_mean` averages the four suites.
 
 Ties count against you in both. The reward is the **mean of
 `retrieval_mean` and `zero_shot_mean`, in percent; higher is better**,

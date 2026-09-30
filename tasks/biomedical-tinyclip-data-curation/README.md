@@ -105,8 +105,9 @@ aligns biomedical figures with their captions.
 
 ### Baseline calibration
 
-Measured on Modal (one H100 per run) on 2026-09-29, three seeds on each
-evaluator (the seed changes the random draw of 256,000 ids):
+**To be re-measured:** the values below were taken with plain (not balanced)
+zero-shot accuracy, before the switch. Measured on Modal (one H100 per run)
+on 2026-09-29, three seeds on each evaluator (the seed changes the random draw of 256,000 ids):
 
 | Seed | Split | reward | retrieval_mean | zero_shot_mean |
 |---|---|---|---|---|
@@ -169,8 +170,11 @@ and its byte-identical copy `tests/evaluator/`):
    directions, and a domain's score is the mean of those six recalls over its
    500 queries. Zero-shot: every image and distinct candidate caption is
    encoded, and an image is correct only if its correct caption scores
-   strictly higher than every other candidate. In both, ties and NaNs count
-   as misses.
+   strictly higher than every other candidate; each task is scored by
+   balanced accuracy (the mean over its classes of per-class accuracy), so
+   several tasks' skewed class balance (e.g. DermaMNIST, BreastMNIST, several
+   uBench tasks) cannot be exploited by favouring the common class. In both
+   families, ties and NaNs count as misses.
 3. `score.py` writes `/logs/verifier/reward.json` (`reward`, `invalid`,
    `retrieval_mean`, `zero_shot_mean`, eight domain scores, four suite
    accuracies) and `/logs/verifier/result.json` (score, metric, direction,
@@ -257,7 +261,7 @@ theoretical best 100.
   the mean of image-to-text and text-to-image recall@1/5/10 for that domain's
   500 queries against all 4,000 pairs of the split.
 - `zero_shot_mean` is the mean of the four suite accuracies, each the
-  unweighted mean of its tasks' accuracies.
+  unweighted mean of its tasks' balanced accuracies.
 
 All fourteen are declared diagnostic metrics; every recall per domain and
 accuracy per task is reported in `result.json`. The two families are

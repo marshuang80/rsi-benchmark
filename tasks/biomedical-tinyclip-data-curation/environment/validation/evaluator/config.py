@@ -36,7 +36,8 @@ MAX_TEXT_TOKENS = 77
 # Two families, both measured on held-out data the pool never contains:
 #   zero-shot classification on the open suites of Biomedica2025EvalSet (an
 #   image is correct only if its gold caption scores strictly above every
-#   other option; suite accuracy = mean over its tasks), and
+#   other option; a task scores its balanced accuracy, the mean over classes
+#   of per-class accuracy; suite accuracy = mean over its tasks), and
 #   image-caption retrieval on 2022 PMC-OA figures, 500 pairs per domain,
 #   recall@1/5/10 in both directions over the whole split (ties count as
 #   misses); a domain's score is the mean of those six recalls for its queries.
