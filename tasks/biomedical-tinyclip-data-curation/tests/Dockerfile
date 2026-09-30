@@ -20,8 +20,9 @@ RUN python -c "from huggingface_hub import snapshot_download; snapshot_download(
     && rm -rf /root/.cache/huggingface /opt/tinyclip/.cache \
     && python -c "from transformers import CLIPModel, CLIPTokenizerFast; CLIPModel.from_pretrained('/opt/tinyclip'); CLIPTokenizerFast.from_pretrained('/opt/tinyclip')(['smoke test'], padding=True, truncation=True, max_length=77, return_tensors='pt')"
 
-COPY build_pool.py pool_articles.tsv.gz pool_exclude.txt.gz /tests/pool/
-RUN python /tests/pool/build_pool.py --out /tests/data/pool
+COPY build_pool.py pool_articles.tsv.gz pool_exclude.txt.gz eval_test.tsv.gz /tests/pool/
+RUN python /tests/pool/build_pool.py --out /tests/data/pool \
+        --eval-list eval_test.tsv.gz --eval-out /tests/data/test_retrieval
 
 # Held-out half of the zero-shot eval set (same builder and pinned files as the
 # agent image, other half of the split).
