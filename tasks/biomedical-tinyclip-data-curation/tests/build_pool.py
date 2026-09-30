@@ -3,7 +3,8 @@
 """Build the training pool from PMC-OA, restricted to commercial-use articles.
 
 Source: axiong/pmc_oa on Hugging Face (ungated), pinned to one revision:
-pmc_oa.jsonl (one sub-figure caption per image) and images.zip (1.85M JPEGs).
+pmc_oa.jsonl (1.64M sub-figure captions, one per image) and images.zip (1.85M
+JPEGs, more than the captioned sub-figures).
 The archive is read directly over HTTP range requests, member by member in
 archive order, so no 22.7 GB temporary file is needed; every member's CRC is
 checked by zipfile, and the finished pool is checked against pinned SHA-256
@@ -15,8 +16,9 @@ script (produced once by data_prep/prepare_pool.py):
   pool_articles.tsv.gz   one row per admitted article: pmcid, license, journal,
                          year, title (commercial-use licenses only: CC0, CC BY,
                          CC BY-SA, CC BY-ND; retracted articles excluded)
-  pool_exclude.txt.gz    image names removed because they near-duplicate an
-                         evaluation image, or have an empty caption
+  pool_exclude.txt.gz    names of admitted-article images removed because the
+                         caption is empty or the image is a confirmed copy of an
+                         evaluation image (pool articles only, no eval names)
 
 Output (the layout the evaluator reads):
   <out>/images.bin   JPEG bytes back to back (archive order)
@@ -57,6 +59,7 @@ CAPTIONS_SHA256 = "05702cd5fb41ebf55a7226ca3c53e68edff4b4455224d7e6ff9d01157f5aa
 ARCHIVE_FILE = "images.zip"
 ARCHIVE_SIZE = 22746087463
 SALT = b"biomedical-tinyclip-data-curation/pool/v1"
+LAST_POOL_YEAR = 2021          # the time split: 2022 articles are evaluation data
 HERE = Path(__file__).resolve().parent
 ARTICLES = HERE / "pool_articles.tsv.gz"
 EXCLUDE = HERE / "pool_exclude.txt.gz"
@@ -101,6 +104,8 @@ class HTTPRangeFile(io.RawIOBase):
             try:
                 req = urllib.request.Request(self.url, headers={"Range": f"bytes={start}-{end - 1}"})
                 with urllib.request.urlopen(req, timeout=300) as r:
+                    if r.status != 206:      # a server ignoring Range would send the whole 22.7 GB
+                        raise IOError(f"expected HTTP 206 for a range request, got {r.status}")
                     data = r.read()
                 if len(data) == end - start:
                     return data
@@ -174,6 +179,8 @@ def main() -> None:
     ap.add_argument("--eval-out", default=None, help="where to write that retrieval split")
     ap.add_argument("--no-verify", action="store_true", help="skip the pinned-digest check (author use)")
     a = ap.parse_args()
+    if bool(a.eval_list) != bool(a.eval_out):
+        sys.exit("FATAL: --eval-list and --eval-out must be given together")
     t0 = time.time()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -186,6 +193,9 @@ def main() -> None:
         download(f"{REPO_URL}/{CAPTIONS_FILE}", captions_path, CAPTIONS_SHA256)
 
     articles = load_articles()
+    late = [p for p, r in articles.items() if not r["year"] or int(r["year"]) > LAST_POOL_YEAR]
+    if late:
+        sys.exit(f"FATAL: {len(late)} admitted articles are not from {LAST_POOL_YEAR} or earlier, e.g. {late[:3]}")
     with gzip.open(EXCLUDE, "rt", encoding="utf-8") as fh:
         excluded = {line.strip() for line in fh if line.strip()}
 
@@ -218,8 +228,10 @@ def main() -> None:
                     eval_rows[r["image"]] = {"caption": " ".join(r["caption"].split()), "domain": domain,
                                              "pmcid": r["image"].split("_", 1)[0], "license": lic}
         overlap = set(eval_rows) & set(rows)
-        if len(eval_rows) != len(wanted) or overlap:
-            sys.exit(f"FATAL: eval list resolves to {len(eval_rows)} of {len(wanted)} rows, {len(overlap)} in the pool")
+        shared_articles = {r["pmcid"] for r in eval_rows.values()} & set(articles)
+        if len(eval_rows) != len(wanted) or overlap or shared_articles:
+            sys.exit(f"FATAL: eval list resolves to {len(eval_rows)} of {len(wanted)} rows; {len(overlap)} images "
+                     f"and {len(shared_articles)} articles are shared with the pool")
     if not a.captions:
         captions_path.unlink()
     order = sorted(rows, key=lambda n: hashlib.sha256(SALT + b":" + n.encode()).digest())
@@ -239,7 +251,7 @@ def main() -> None:
             members[base] = info
     missing = [n for n in order + eval_order if n not in members]
     if missing:
-        sys.exit(f"FATAL: {len(missing)} pool images missing from the archive, e.g. {missing[:3]}")
+        sys.exit(f"FATAL: {len(missing)} pool/eval images missing from the archive, e.g. {missing[:3]}")
 
     index = np.zeros((len(order), 2), dtype=np.int64)
     img_hash = hashlib.sha256()
@@ -265,7 +277,7 @@ def main() -> None:
             img_hash.update(data)
             index[pool_id[base]] = (offset, len(data))
             offset += len(data)
-            if n % 100_000 == 0:
+            if n % 100_000 == 0 or n == len(members):
                 print(f"  {n:,}/{len(members):,} images, {offset / 1e9:.1f} GB, {time.time() - t0:.0f}s", flush=True)
     zf.close()
     if eval_fh:

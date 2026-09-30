@@ -68,8 +68,8 @@ def read_meta(directory: str | Path) -> list[dict]:
 def preprocess(img: Image.Image, size: int) -> np.ndarray:
     """CLIP evaluation transform: shorter side to `size` (bicubic), centre crop, normalise.
 
-    Release images are stored with the shorter side already at `size`, so for
-    them this is a pure centre crop. Rounding differs from torchvision's
+    Stored images keep their original bytes and resolution, so every image is
+    resized here. Rounding differs from torchvision's
     Resize/CenterCrop by at most one pixel; both evaluators use this exact
     function, so scores are self-consistent. Returns a float32 CHW array.
     """

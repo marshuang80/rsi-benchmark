@@ -5,13 +5,13 @@
   zero_shot_mean = mean of the four suite accuracies (each the mean of its
                    tasks' zero-shot accuracies), in percent
   retrieval_mean = mean of the eight domain retrieval scores, in percent
-  reward         = mean of zero_shot_mean and retrieval_mean (provisional:
-                   the weighting is to be fixed from baseline results)
+  reward         = mean of zero_shot_mean and retrieval_mean (equal weighting;
+                   may be revisited once agent results are in)
   invalid = 0 for any submission that reached this point
 
 Writes <out-dir>/reward.json (reward, invalid, every declared metric) and
 <out-dir>/result.json (the same plus direction, status, split and the
-per-figure-type components). Pure measurement: nothing here is normalised
+per-task accuracies and per-domain recalls as components). Pure measurement: nothing here is normalised
 against the baseline or the theoretical best.
 """
 from __future__ import annotations

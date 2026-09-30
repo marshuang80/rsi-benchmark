@@ -7,12 +7,16 @@ Inputs (all public, no login):
   article_meta.jsonl            per-article license / retraction / citation records
                                 from PubMed Central's open-data bucket
                                 (lookup_licenses.py writes it)
-  --evalset-dir val test        both halves built by build_evalset.py
+  --evalset-dir ...             every evaluation half: both zero-shot halves (build_evalset.py)
+                                and both retrieval halves (build_pool.py --eval-out)
 
-Outputs (committed next to build_pool.py, in both environment/ and tests/):
-  pool_articles.tsv.gz   admitted articles: commercial-use license (CC0, CC BY,
-                         CC BY-SA, CC BY-ND), open access, not retracted
-  pool_exclude.txt.gz    image names dropped: empty caption, or a confirmed
+Outputs (inputs to build_splits.py, which writes the committed files):
+  pool_articles_all.tsv.gz  admitted articles of every year: commercial-use
+                         license (CC0, CC BY, CC BY-SA, CC BY-ND), open access,
+                         not retracted (build_splits.py restricts it to the pool
+                         years and writes the committed pool_articles.tsv.gz)
+  pool_exclude_all.txt.gz  image names dropped (all years; build_splits.py keeps
+                         only pool-article names for the committed pool_exclude.txt.gz): empty caption, or a confirmed
                          near-duplicate of an evaluation image. Two stages: a
                          256-bit difference hash within DHASH_MAX_DISTANCE bits
                          flags candidates (it catches every resized or
@@ -24,8 +28,7 @@ Outputs (committed next to build_pool.py, in both environment/ and tests/):
                          for how both thresholds were measured.
   pool_stats.json        composition, for the README
 
-Then run build_pool.py --zip ... --captions ... --no-verify and paste the
-digests it prints into EXPECTED in both build_pool.py copies.
+See the README ("Training pool") for the full, ordered author pipeline.
 """
 from __future__ import annotations
 
@@ -131,7 +134,7 @@ def main() -> None:
         journal, year = parse_citation(r.get("citation"))
         articles[r["pmcid"]] = {"license": r["license"], "journal": clean(journal), "year": year,
                                 "title": clean(r.get("title"))[:300]}
-    with gzip.open(out / "pool_articles.tsv.gz", "wt", encoding="utf-8", compresslevel=9) as fh:
+    with gzip.open(out / "pool_articles_all.tsv.gz", "wt", encoding="utf-8", compresslevel=9) as fh:
         fh.write("pmcid\tlicense\tjournal\tyear\ttitle\n")
         for pmcid in sorted(articles):
             r = articles[pmcid]
@@ -202,7 +205,7 @@ def main() -> None:
             best_rejected = max(best_rejected, best)
     print(f"decontamination: {len(flagged)} flagged by hash, {why['eval_near_duplicate']} confirmed as copies "
           f"(highest correlation among rejected: {best_rejected:.3f})", flush=True)
-    with gzip.open(out / "pool_exclude.txt.gz", "wt", encoding="utf-8", compresslevel=9) as fh:
+    with gzip.open(out / "pool_exclude_all.txt.gz", "wt", encoding="utf-8", compresslevel=9) as fh:
         fh.write("\n".join(sorted(excluded)) + "\n")
 
     journals = Counter()
