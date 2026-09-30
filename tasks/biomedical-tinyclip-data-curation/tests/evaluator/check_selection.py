@@ -56,7 +56,10 @@ def check_bundle(sub: Path) -> None:
         except OSError as exc:
             die(f"cannot read {d.relative_to(sub)}: {exc}")
         for p in entries:
-            st = p.lstat()
+            try:
+                st = p.lstat()
+            except OSError as exc:
+                die(f"cannot stat {p.relative_to(sub)}: {exc}")
             count += 1
             if count > config.BUNDLE_MAX_FILES:
                 die(f"submission holds more than {config.BUNDLE_MAX_FILES} files")
